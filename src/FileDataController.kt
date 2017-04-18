@@ -27,7 +27,7 @@ class FileDataController : Controller() {
     var filesCopiedCounter = 0
     var copyDirs = false
 
-    private var stopExecutionFlag = false
+    var stopExecutionFlag = false
 
     private var threadPool : ThreadPoolExecutor? = ThreadPoolExecutor(4, 8, 30, TimeUnit.SECONDS, ArrayBlockingQueue(20))
 

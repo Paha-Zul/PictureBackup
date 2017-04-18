@@ -26,7 +26,7 @@ class MyView : View() {
     private var task: Task <Unit>? = null
     private var uiTimer: Timer? = null
 
-    private var currPath = "File name here"
+    private var currPath = ""
 
     private var progressBar : ProgressBar by singleAssign()
     private var fileNameLabel : Label by singleAssign()
@@ -37,30 +37,10 @@ class MyView : View() {
 
     private var progressInfo:Triple<Path, Int, Int> = Triple(Paths.get(""), 0, 1)
 
-    //This takes a label and updates it with text. Thread safe!
-    private val updateFileNameTask = object:TimerTask(){
-        override fun run() {
-            Platform.runLater({
-                //Update UI here
-                fileNameLabel.text = currPath
-//                fileCountLabel.text = "Files Found: ${fileController.getTotalFiles()}"
-            })
-        }
-    }
-
-    //Updates a label and progress bar. Thread safe!
-    val calculateSpeedAverage = object:TimerTask(){
-        override fun run() {
-            Platform.runLater({
-                //Update UI here
-               fileCountLabel.text = "Est: ${(fileController.filesCopiedCounter/fileController.getTotalFiles())*1/50} seconds"
-                fileController.filesCopiedCounter = 0
-            })
-        }
-    }
-
     init {
         with(root){
+            title = "Picture Backup v0.1"
+
             alignment = Pos.CENTER
 
             //The progress bar for our copying
@@ -76,28 +56,24 @@ class MyView : View() {
             hbox{
                 alignment = Pos.CENTER
                 dirCheckBox = checkbox {
+                    isSelected = true
+                    fileController.copyDirs = true
                     action {
                         fileController.copyDirs = isSelected
                     }
                 }
 
                 label("Copy Directories"){
-
                 }
             }
 
-
             //Where some information about the program goes
-            fileNameLabel = label("Waiting"){
-
+            fileNameLabel = label(""){
             }
 
             //Where some information about the program goes
             fileCountLabel = label(""){
-
             }
-
-
 
             //The start/stop button for the process
             startButton = button("Start") {
@@ -106,6 +82,8 @@ class MyView : View() {
                     val textValue = text
                     if (textValue == "Start") {
                         text = "Stop"
+
+                        fileController.stopExecutionFlag = false
 
                         //Disable the checkbox so we can't change that
                         dirCheckBox.isDisable = true
@@ -123,9 +101,15 @@ class MyView : View() {
                                 }
                             }
 
+                            //Timer to update progress bar and stuff
                             uiTimer = Timer()
                             uiTimer!!.schedule(getUpdateProgressTask(), 0L, 50L)
                         }
+
+                        //A timer to update the file name. This is done because updating a label in a background thread will
+                        //crash the program. So instead we update a label with a timer...
+                        uiTimer = Timer()
+                        uiTimer!!.schedule(getUpdateFileNameTask(), 0L, 50L)
                     }else if(textValue == "Stop"){
                         text = "Start"
 
@@ -153,11 +137,6 @@ class MyView : View() {
             startButton.text = "Start"
             fileCountLabel.text = "File Copying Done! Copied ${fileController.currCopyIndex}"
         }
-
-        //A timer to update the file name. This is done because updating a label in a background thread will
-        //crash the program. So instead we update a label with a timer...
-        uiTimer = Timer()
-        uiTimer!!.schedule(updateFileNameTask, 0L, 50L)
     }
 
     fun getUpdateProgressTask() : TimerTask {
@@ -169,6 +148,19 @@ class MyView : View() {
                     progressBar.progress = progressInfo.second.toDouble()/progressInfo.third.toDouble()
 //                    fileCountLabel.text = "Est: ${fileController.filesCopiedCounter/fileController.getTotalFiles()} seconds"
                     fileController.filesCopiedCounter = 0
+                })
+            }
+        }
+    }
+
+    fun getUpdateFileNameTask() : TimerTask{
+        //This takes a label and updates it with text. Thread safe!
+        return object:TimerTask(){
+            override fun run() {
+                Platform.runLater({
+                    //Update UI here
+                    fileNameLabel.text = currPath
+//                fileCountLabel.text = "Files Found: ${fileController.getTotalFiles()}"
                 })
             }
         }
